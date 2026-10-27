@@ -1,0 +1,15 @@
+html, body { margin:0; padding:0; background:#0b0a14; height:100%; overflow:hidden; }
+body { font-family: 'Press Start 2P', monospace; color:#f4f4f8; }
+#wrap { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; background:#0b0a14; }
+canvas#game {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  background:#0b0a14;
+  cursor: crosshair;
+  outline:none;
+}
+#loading { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; background:#0b0a14; transition:opacity .5s; }
+#loading .logo { font-size:48px; letter-spacing:6px; color:#f5d33a; text-shadow:4px 4px 0 #8a1c1c, 0 0 24px #f08a2a; }
+#loading .sub { font-size:12px; color:#a8a8b8; animation:blink 1s steps(2) infinite; }
+#loading.hide { opacity:0; pointer-events:none; }
+@keyframes blink { 50% { opacity:.3; } }

@@ -1,0 +1,61 @@
+import { WANDS, WAND_LIST } from '../data/wands.js';
+import { ARMOR, ARMOR_LIST } from '../data/armor.js';
+import { ITEMS } from '../data/items.js';
+// Material / consumable recipes: [result, count, ingredients[[id,n]], station|null, category]
+const R = [];
+const r = (id, n, ing, station, cat) => R.push({ id, n, ingredients: ing, station, cat });
+r('copper_bar', 1, [['copper_ore', 2], ['coal', 1]], 'anvil', 'materials');
+r('iron_bar', 1, [['iron_ore', 2], ['coal', 1]], 'anvil', 'materials');
+r('gold_bar', 1, [['gold_ore', 2], ['coal', 2]], 'anvil', 'materials');
+r('mithril_bar', 1, [['mithril_ore', 2], ['coal', 3]], 'anvil', 'materials');
+r('string', 2, [['fiber', 3]], null, 'materials');
+r('leather', 1, [['fiber', 4], ['slime_gel', 1]], null, 'materials');
+r('coal', 2, [['wood', 5]], 'campfire', 'materials');
+r('flint', 1, [['stone', 3]], null, 'materials');
+r('arcane_dust', 2, [['crystal', 1], ['flower', 2]], 'altar', 'materials');
+r('runestone', 1, [['stone', 10], ['arcane_dust', 3]], 'altar', 'materials');
+r('cooked_meat', 1, [['meat', 1]], 'campfire', 'food');
+r('cooked_fish', 1, [['fish', 1]], 'campfire', 'food');
+r('bread', 2, [['seed', 3], ['fiber', 2]], 'campfire', 'food');
+r('cheese', 1, [['honey', 1], ['mushroom', 2]], 'campfire', 'food');
+r('ember_fruit', 1, [['apple', 1], ['coal', 3], ['flint', 1]], 'campfire', 'pet');
+r('glow_berry', 2, [['berry', 3], ['glow_cap', 1]], null, 'pet');
+r('crystal_candy', 1, [['crystal', 2], ['honey', 1]], null, 'pet');
+r('soul_shard', 1, [['bone', 5], ['arcane_dust', 2]], 'altar', 'pet');
+r('magic_treat', 1, [['honey', 2], ['arcane_dust', 2], ['berry', 3]], null, 'pet');
+r('golden_treat', 1, [['magic_treat', 5], ['gold_bar', 2], ['star_fragment', 1]], 'altar', 'pet');
+r('saddle', 1, [['leather', 6], ['iron_bar', 1], ['string', 3]], 'anvil', 'pet');
+r('pet_tome', 1, [['xp_tome', 1], ['honey', 3]], null, 'pet');
+r('egg_mystery', 1, [['egg_fire', 1], ['egg_ice', 1]], 'altar', 'pet');
+r('potion_hp', 1, [['herb', 2], ['berry', 2], ['slime_gel', 1]], null, 'potions');
+r('potion_mana', 1, [['crystal', 1], ['flower', 3], ['slime_gel', 1]], null, 'potions');
+r('potion_hp2', 1, [['potion_hp', 2], ['nature_essence', 1]], 'cauldron', 'potions');
+r('potion_mana2', 1, [['potion_mana', 2], ['arcane_dust', 3]], 'cauldron', 'potions');
+r('potion_speed', 1, [['feather', 5], ['berry', 3], ['slime_gel', 1]], null, 'potions');
+r('potion_str', 1, [['fang', 3], ['meat', 2], ['slime_gel', 1]], null, 'potions');
+r('potion_def', 1, [['stone', 5], ['iron_ore', 1], ['slime_gel', 1]], null, 'potions');
+r('potion_regen', 1, [['herb', 5], ['honey', 1], ['slime_gel', 1]], 'cauldron', 'potions');
+r('potion_luck', 1, [['flower', 5], ['ancient_coin', 1], ['slime_gel', 1]], 'cauldron', 'potions');
+r('potion_invis', 1, [['shadow_essence', 1], ['glow_berry', 2], ['slime_gel', 1]], 'cauldron', 'potions');
+r('elixir', 1, [['holy_essence', 1], ['nature_essence', 1], ['honey', 3]], 'cauldron', 'potions');
+r('bomb', 2, [['coal', 3], ['flint', 1], ['string', 1]], null, 'potions');
+r('recall_scroll', 1, [['fiber', 3], ['arcane_dust', 1]], null, 'potions');
+r('xp_tome', 1, [['arcane_dust', 5], ['runestone', 1], ['string', 2]], 'altar', 'potions');
+r('wand_tome', 1, [['arcane_dust', 5], ['crystal', 3], ['string', 2]], 'altar', 'potions');
+r('ruin_key', 1, [['iron_bar', 2], ['ancient_coin', 1]], 'anvil', 'materials');
+r('gold_key', 1, [['gold_bar', 3], ['ancient_coin', 2]], 'anvil', 'materials');
+export const RECIPES = R;
+export function allRecipes() {
+  const out = [];
+  for (const w of WAND_LIST) out.push({ type: 'wand', id: w.id, name: w.name, ingredients: w.recipe, station: w.station, cat: 'wands', rarity: w.rarity, tier: w.tier, def: w });
+  for (const a of ARMOR_LIST) out.push({ type: 'armor', id: a.id, name: a.name, ingredients: a.recipe, station: a.station, cat: a.slot === 'charm' ? 'charms' : 'armor', rarity: a.rarity, tier: a.tier, def: a });
+  for (const x of R) out.push({ type: 'item', id: x.id, n: x.n, name: ITEMS[x.id] ? ITEMS[x.id].name : x.id, ingredients: x.ingredients, station: x.station, cat: x.cat, rarity: ITEMS[x.id] ? ITEMS[x.id].rarity : 'common', tier: 1, def: ITEMS[x.id] });
+  return out;
+}
+export const STATION_NAMES = { anvil: 'Anvil', altar: 'Arcane Altar', cauldron: 'Cauldron', campfire: 'Campfire' };
+export function canCraft(p, rec, nearStations) {
+  if (rec.station && !nearStations.includes(rec.station)) return { ok: false, why: 'Needs ' + STATION_NAMES[rec.station] };
+  for (const [id, n] of rec.ingredients) if (p.countItem(id) < n) return { ok: false, why: 'Missing ' + (ITEMS[id] ? ITEMS[id].name : id) };
+  if (rec.type === 'wand' && p.wands[rec.id]) return { ok: false, why: 'Already owned' };
+  return { ok: true };
+}

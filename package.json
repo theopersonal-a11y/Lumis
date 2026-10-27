@@ -1,0 +1,12 @@
+{
+  "name": "lumis",
+  "version": "1.0.0",
+  "description": "Lumis - a 2D pixel-art wizard world. Static site, zero dependencies.",
+  "type": "module",
+  "scripts": {
+    "dev": "node serve.js",
+    "start": "node serve.js",
+    "check": "node scripts/check.js"
+  },
+  "license": "MIT"
+}

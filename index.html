@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>LUMIS — Wizard World</title>
+<meta name="description" content="Lumis: a 2D pixel-art wizard adventure. Craft 60+ wands, tame 150+ pets, explore 36 points of interest, complete quests, and restore the light.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="640" height="360"></canvas>
+  <div id="loading">
+    <div class="logo">LUMIS</div>
+    <div class="sub">summoning the world...</div>
+  </div>
+</div>
+<input type="file" id="importFile" accept="application/json,.json" style="display:none">
+<script type="module" src="src/main.js"></script>
+</body>
+</html>
