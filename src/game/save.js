@@ -8,7 +8,7 @@ export function serialize() {
     player: { x: p.x, y: p.y, level: p.level, xp: p.xp, statPoints: p.statPoints, alloc: p.alloc, inventory: p.inventory, coins: p.coins, equip: p.equip, wands: p.wands, pets: p.pets, activePets: p.activePets, petUid: p.petUid, hp: p.hp, mana: p.mana, respawn: p.respawn, craftedWands: p.craftedWands, craftedArmor: p.craftedArmor, tamedIds: p.tamedIds, reviveUsedDay: p.reviveUsedDay },
     quickSlots: G.quickSlots, stats: G.stats, flags: G.flags, discovered: G.discovered, questState: G.questState, achievements: G.achievements,
     world: { changes: G.world.changes, chests: G.world.chestsOpened, bossKilled: G.bossKilled, tamedSpawns: G.tamedSpawns },
-    settings: G.settings,
+    settings: G.settings, event: G.event,
   };
 }
 export function save(manual = false) {

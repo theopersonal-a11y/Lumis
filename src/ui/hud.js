@@ -9,6 +9,7 @@ import { OBJ } from '../data/tiles.js';
 import { Quests } from '../game/questsys.js';
 import { XP_NEED, foodName } from '../game/player.js';
 import { BIOME_NAMES } from '../world/world.js';
+import { abilityIcon } from './icons.js';
 export function drawHUD(ctx) {
   const p = G.player; const W = G.W, H = G.H; G.uiHover = false;
   // ---- top-left: vitals ----
@@ -35,7 +36,7 @@ export function drawHUD(ctx) {
     const x = abx + i * 30; const key = keys[i]; const aid = i === 0 ? null : w.abilities[key]; const ab = aid ? ABILITIES[aid] : null;
     const locked = i === 4 && !aid; panel(ctx, x, aby, 28, 28, locked ? 'dark' : i === 4 ? 'purple' : i === 0 ? 'stone' : 'wood');
     if (i === 0) { ctx.drawImage(wandSprite(w.id), x + 8, aby + 7); }
-    else if (ab) { const col = ab.ultimate ? '#ff3a7a' : ELEMENT_COLORS[w.element] || '#fff'; rect(ctx, x + 7, aby + 7, 14, 14, col); rect(ctx, x + 9, aby + 9, 10, 10, 'rgba(0,0,0,0.35)'); text(ctx, ab.name[0], x + 14, aby + 10, '#fff', 8, 'center'); const cd = p.cds[key]; if (cd > 0) { rect(ctx, x + 4, aby + 4 + Math.round(20 * (1 - cd / (ab.cd * (1 - Math.min(0.6, p.stats.cdr || 0))))), 20, Math.round(20 * cd / (ab.cd * (1 - Math.min(0.6, p.stats.cdr || 0)))), 'rgba(0,0,0,0.7)'); text(ctx, Math.ceil(cd), x + 14, aby + 10, '#fff', 7, 'center'); } else if (p.mana < ab.mana) rect(ctx, x + 4, aby + 4, 20, 20, 'rgba(20,30,120,0.5)'); }
+    else if (ab) { const col = ab.ultimate ? '#ff3a7a' : ELEMENT_COLORS[w.element] || '#fff'; rect(ctx, x + 5, aby + 5, 18, 18, 'rgba(0,0,0,0.35)'); ctx.drawImage(abilityIcon(ab.id, col), x + 9, aby + 9); const cd = p.cds[key]; if (cd > 0) { rect(ctx, x + 4, aby + 4 + Math.round(20 * (1 - cd / (ab.cd * (1 - Math.min(0.6, p.stats.cdr || 0))))), 20, Math.round(20 * cd / (ab.cd * (1 - Math.min(0.6, p.stats.cdr || 0)))), 'rgba(0,0,0,0.7)'); text(ctx, Math.ceil(cd), x + 14, aby + 10, '#fff', 7, 'center'); } else if (p.mana < ab.mana) rect(ctx, x + 4, aby + 4, 20, 20, 'rgba(20,30,120,0.5)'); }
     else if (locked) { text(ctx, '?', x + 14, aby + 10, '#5a2a8a', 10, 'center'); }
     text(ctx, key, x + 14, aby + 29, i === 4 ? '#c070ff' : '#f0c8a0', 5, 'center');
     const mx = Input.mouse.x, my = Input.mouse.y;
@@ -47,7 +48,7 @@ export function drawHUD(ctx) {
   // ---- pets ----
   let py = H - 30; for (const pt of G.pets) { panel(ctx, 4, py - 6, 60, 26, 'green'); const spr = petSprite(pt.def.id); ctx.globalAlpha = pt.ko ? 0.4 : 1; ctx.drawImage(spr, 8, py - 3, 12, 12); ctx.globalAlpha = 1; text(ctx, (pt.data.name || pt.def.name).slice(0, 8), 22, py - 3, RARITY_COLORS[pt.def.rarity], 5); bar(ctx, 22, py + 5, 36, 3, pt.hp / pt.maxHp, '#8fe04a', '#0a2a0a'); text(ctx, pt.ko ? `KO ${Math.ceil(pt.koT)}s` : `L${pt.lvl}${pt.riding ? ' RIDE' : ''}`, 22, py + 10, pt.ko ? '#d43a3a' : '#a8a8b8', 5); py -= 30; }
   // ---- minimap ----
-  const mmx = W - 80, mmy = 4; panel(ctx, mmx - 4, mmy, 80, 94, 'dark');
+  const mmx = W - 80, mmy = 4; panel(ctx, mmx - 4, mmy, 80, 106, 'dark');
   if (G.mapCanvas) { const ptx = p.x / 16, pty = p.y / 16; ctx.drawImage(G.mapCanvas, ptx - 36, pty - 36, 72, 72, mmx, mmy + 4, 72, 72);
     for (const poi of G.world.pois) { const dx = poi.tx - ptx, dy = poi.ty - pty; if (Math.abs(dx) < 36 && Math.abs(dy) < 36) { rect(ctx, mmx + 36 + dx - 1, mmy + 40 + dy - 1, 3, 3, G.discovered[poi.id] ? poi.def.icon : '#6b6b7b'); } }
     for (const e of G.enemies) { const dx = e.x / 16 - ptx, dy = e.y / 16 - pty; if (Math.abs(dx) < 36 && Math.abs(dy) < 36) rect(ctx, mmx + 36 + dx, mmy + 40 + dy, e.def.boss ? 2 : 1, e.def.boss ? 2 : 1, e.def.boss ? '#ff3a7a' : '#d43a3a'); }
@@ -57,8 +58,9 @@ export function drawHUD(ctx) {
   const night = G.time > 0.74 || G.time < 0.22; const hour = Math.floor(((G.time + 0.25) % 1) * 24); const mins = Math.floor((((G.time + 0.25) % 1) * 24 - hour) * 60);
   text(ctx, `Day ${G.day}  ${String(hour).padStart(2, '0')}:${String(mins).padStart(2, '0')}`, mmx + 36, mmy + 79, night ? '#c8f0ff' : '#f5d33a', 5, 'center');
   const biome = G.world.biomeAt(Math.floor(p.x / 16), Math.floor(p.y / 16)); text(ctx, BIOME_NAMES[biome] || biome, mmx + 36, mmy + 87, '#a8a8b8', 5, 'center');
+  if (G.event && G.event.day === G.day) { const ev = G.EVENTS[G.event.type]; text(ctx, ev.name, mmx + 36, mmy + 97, ev.color, 5, 'center'); }
   // ---- quest tracker ----
-  const act = Quests.active().slice(0, 3); let qy2 = 104;
+  const act = Quests.active().slice(0, 3); let qy2 = 116;
   for (const q of act) { const done = Quests.isComplete(q); text(ctx, (done ? '[DONE] ' : '') + q.name, W - 6, qy2, done ? '#8fe04a' : '#f5d33a', 5, 'right'); qy2 += 7; q.objectives.forEach((o, i) => { text(ctx, Quests.objText(q, i), W - 6, qy2, Quests.progress(q, i) >= Quests.goal(o) ? '#8fe04a' : '#d8d8e0', 5, 'right'); qy2 += 7; }); qy2 += 3; }
   // ---- boss bar ----
   const boss = G.enemies.find(e => e.def.boss && Math.hypot(e.x - p.x, e.y - p.y) < 500);

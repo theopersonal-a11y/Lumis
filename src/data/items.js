@@ -158,7 +158,7 @@ export const ITEM_LIST = [
   // ---- keys & special ----
   ['ruin_key', 'Ruin Key', 'key:g,K,G', 'rare', 40, 'Opens locked ruin chests.'],
   ['gold_key', 'Golden Key', 'key:y,Y,h', 'epic', 120, 'Opens golden chests.'],
-  ['map_fragment', 'Map Fragment', 'map:s,n,r', 'rare', 30, 'Part of a treasure map.'],
+  ['map_fragment', 'Map Fragment', 'map:s,n,r', 'rare', 30, 'Reveals an undiscovered location on your map.', { use: 'map' }],
   ['coins', 'Coins', 'coin:y,Y,h', 'common', 1, 'Shiny currency.', { stack: 99999 }],
   ['pet_whistle', 'Pet Whistle', 'whistle:G,g,w', 'rare', 60, 'Calls your pet to your side.', { use: 'whistle' }],
   ['saddle', 'Saddle', 'wood:n,N,t', 'uncommon', 40, 'Lets you ride larger pets comfortably. +20% ride speed.'],

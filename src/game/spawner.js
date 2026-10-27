@@ -25,7 +25,7 @@ export const Spawner = {
       this.t = 0;
       const near = G.enemies.filter(e => !e.def.boss && Math.hypot(e.x - p.x, e.y - p.y) < 420).length;
       const poi = w.poiAt(p.x, p.y); const safe = poi && poi.def.safe;
-      const cap = (this.isNight() ? 9 : 5) + Math.floor(p.level / 5);
+      const cap = ((this.isNight() ? 9 : 5) + Math.floor(p.level / 5)) * (G.eventIs('blood_moon') && this.isNight() ? 2 : 1);
       if (!safe && near < cap && Math.random() < (this.isNight() ? 0.75 : 0.45)) {
         const a = Math.random() * Math.PI * 2, d = 230 + Math.random() * 120; const x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d;
         const tx = Math.floor(x / 16), ty = Math.floor(y / 16);
@@ -34,7 +34,7 @@ export const Spawner = {
           const dC = Math.hypot(tx - 128, ty - 128) / 128; const maxLvl = 1 + Math.floor(dC * 7) + (this.isNight() ? 1 : 0);
           pool = pool.filter(id => ENEMIES[id].lvl <= maxLvl && (!ENEMIES[id].night || this.isNight() || Math.random() < 0.2));
           if (this.isNight() && b !== 'ocean' && Math.random() < 0.3) pool.push('skeleton', 'zombie', 'bat');
-          if (pool.length) { const id = pool[Math.floor(Math.random() * pool.length)]; const e = new Enemy(id, x, y); G.enemies.push(e); }
+          if (pool.length) { const id = pool[Math.floor(Math.random() * pool.length)]; const e = new Enemy(id, x, y, { hpMult: G.eventIs('blood_moon') && this.isNight() ? 1.4 : 1 }); G.enemies.push(e); }
         }
       }
       // despawn far
@@ -45,7 +45,7 @@ export const Spawner = {
     if (this.petT > 4) {
       this.petT = 0;
       const near = G.wildPets.filter(wp => Math.hypot(wp.x - p.x, wp.y - p.y) < 400).length;
-      if (near < 4 && Math.random() < 0.6) {
+      if (near < (G.eventIs('fairy_festival') ? 10 : 4) && Math.random() < 0.6) {
         const a = Math.random() * Math.PI * 2, d = 200 + Math.random() * 150; const x = p.x + Math.cos(a) * d, y = p.y + Math.sin(a) * d; const tx = Math.floor(x / 16), ty = Math.floor(y / 16);
         if (w.inb(tx, ty) && !w.solid(tx, ty)) { const b = w.biomeAt(tx, ty); const pool = BIOME_PETS[b === 'village' ? 'meadow' : b] || []; if (pool.length) { // rarity-weighted
             const weights = pool.map(id => ({ common: 10, uncommon: 5, rare: 2, epic: 0.8, legendary: 0.3, mythic: 0.1 }[PETS[id].rarity] || 1)); let r = Math.random() * weights.reduce((a, b) => a + b, 0); let pick = pool[0]; for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) { pick = pool[i]; break; } }

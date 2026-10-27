@@ -32,8 +32,9 @@ export class Player {
     for (const slot of ['head', 'body', 'legs', 'feet', 'charm']) { const id = this.equip[slot]; if (!id || !ARMOR[id]) continue; const ar = ARMOR[id]; s.def += ar.def; for (const k in ar.buffs) s[k] = (s[k] || 0) + ar.buffs[k]; if (ar.set) sets[ar.set] = (sets[ar.set] || 0) + 1; }
     this.setBonus = null; for (const k in sets) if (sets[k] >= 4) { const ar = ARMOR_FIRST(k); if (ar && ar.setBonus) { this.setBonus = ar.setName; for (const b in ar.setBonus) s[b] = (s[b] || 0) + ar.setBonus[b]; } }
     for (const uid of this.activePets) { const pd = this.pets.find(p => p.uid === uid); if (!pd) continue; const def = PETS[pd.id]; if (!def) continue; const lv = 1 + (pd.lvl - 1) * 0.05; for (const k in def.buff) s[k] = (s[k] || 0) + def.buff[k] * lv; if (def.abil === 'luck') s.luck += 0.1; if (def.abil === 'regen') s.regen += 1; if (def.abil === 'light') s.light = true; }
-    const w = WANDS[this.equip.wand]; if (w) { if (w.luck) s.luck += w.luck; if (w.crit) s.crit += w.crit; if (w.regen) s.regen += w.regen; if (w.lifesteal) s.lifesteal += w.lifesteal; }
+    const w = WANDS[this.equip.wand]; if (w) { if (w.luck) s.luck += w.luck; if (w.crit) s.crit += w.crit; if (w.regen) s.regen += w.regen; if (w.lifesteal) s.lifesteal += w.lifesteal; const en = (this.wands[w.id] || {}).ench || {}; for (const k in en) if (k !== 'dmg') s[k] = (s[k] || 0) + en[k]; }
     for (const k in this.buffs) { const b = this.buffs[k]; if (k in s) s[k] += b.val; else if (k === 'dmg' || k === 'speed' || k === 'crit' || k === 'luck' || k === 'regen' || k === 'def' || k === 'rate') s[k] += b.val; }
+    if (G.eventIs && G.eventIs('blood_moon')) s.luck += 0.3;
     this.stats = s;
     this.maxHp = Math.round(100 + (this.level - 1) * 6 + s.hp); this.maxMana = Math.round(50 + (this.level - 1) * 4 + s.mana);
     if (this.hp > this.maxHp) this.hp = this.maxHp; if (this.mana > this.maxMana) this.mana = this.maxMana;
@@ -42,7 +43,7 @@ export class Player {
   }
   wandDef() { return WANDS[this.equip.wand] || WANDS.wand_wood; }
   wandLvl() { return (this.wands[this.equip.wand] || { lvl: 1 }).lvl; }
-  wandDmg() { const w = this.wandDef(); let d = wandDamage(w, this.wandLvl()) * (1 + this.stats.dmg); if (w.nightBonus && (G.time > 0.75 || G.time < 0.22)) d *= 1 + w.nightBonus; return d; }
+  wandDmg() { const w = this.wandDef(); const en = (this.wands[w.id] || {}).ench || {}; let d = wandDamage(w, this.wandLvl()) * (1 + this.stats.dmg + (en.dmg || 0)); if (w.nightBonus && (G.time > 0.75 || G.time < 0.22)) d *= 1 + w.nightBonus; return d; }
   moveFlags() { const rp = this.ridingPet(); return { fly: !!(this.buffs.fly || (rp && rp.def.fly)), swim: !!(rp && rp.def.swim), ghost: !!this.buffs.ghost, fireproof: !!(rp && rp.def.element === 'fire') || !!this.buffs.phoenix || !!this.buffs.dragon, avoidLava: false }; }
   ridingPet() { return this.ridingUid ? G.pets.find(p => p.data.uid === this.ridingUid) : null; }
   sprite() {
@@ -87,6 +88,7 @@ export class Player {
       case 'petxp': { const pt = G.pets[0]; if (!pt) { G.notify('No active pet.'); return false; } pt.gainXp(it.val); break; }
       case 'recall': this.teleport(G.world.spawn.x, G.world.spawn.y); G.notify('Recalled to Everdawn.', '#5ad8f0'); Audio.play('portal'); break;
       case 'bomb': { const mx = G.aim.x, my = G.aim.y; const dx = mx - this.x, dy = my - this.y, d = Math.hypot(dx, dy) || 1; const dist = Math.min(d, 140); spawnProjectile({ x: this.x, y: this.y - 6, vx: dx / d * 180, vy: dy / d * 180, dmg: 60 * (1 + this.stats.dmg), life: dist / 180, r: 5, color: '#ff6a1a', element: 'fire', owner: 'player', size: 2, explode: 40, effects: { burn: 3 } }); break; }
+      case 'map': { const un = G.world.pois.filter(q => !G.discovered[q.id]); if (!un.length) { G.notify('You already know every location!'); return false; } const poi = un[Math.floor(Math.random() * un.length)]; G.discovered[poi.id] = true; G.notify(`The map reveals: ${poi.name} (marked on your map).`, poi.def.icon, 5); break; }
       case 'whistle': for (const pt of G.pets) { pt.x = this.x; pt.y = this.y; } G.notify('Your pets come running!'); break;
       case 'hatch': { const pool = PET_LIST.filter(p => it.element === 'any' ? !p.where.some(w => w.startsWith('egg:cosmic')) && p.rarity !== 'mythic' : it.element === 'cosmic' ? (p.where.some(w => w === 'egg:cosmic') || p.rarity === 'legendary') : (p.where.some(w => w === 'egg:' + it.element) || (p.element === it.element && ['rare', 'epic', 'legendary'].includes(p.rarity)))); if (!pool.length) return false; const pick = pool[Math.floor(Math.random() * pool.length)]; this.removeItem(id); this.addPet(pick.id, true); spawnParticles(this.x, this.y - 8, 40, ['#f5d33a', '#fff8c0', ELEMENT_COLORS[pick.element]], { speed: 80, life: 0.8 }); Audio.play('tame'); G.notify(`The egg hatched into a ${pick.name}!`, RARITY_COLORS[pick.rarity], 5); return true; }
       default: return false;
@@ -111,7 +113,7 @@ export class Player {
   dismount() { const pt = this.ridingPet(); if (pt) pt.riding = false; this.ridingUid = null; // if over water, hop to nearest land
     if (G.world.solid(Math.floor(this.x / 16), Math.floor(this.y / 16))) { for (let r = 1; r < 12; r++) { let done = false; for (let a = 0; a < 16 && !done; a++) { const tx = Math.floor(this.x / 16) + Math.round(Math.cos(a) * r), ty = Math.floor(this.y / 16) + Math.round(Math.sin(a) * r); if (!G.world.solid(tx, ty)) { this.x = tx * 16 + 8; this.y = ty * 16 + 8; done = true; } } if (done) break; } } }
   // ---------- xp ----------
-  gainXp(n) { this.xp += n; G.float(this.x, this.y - 22, '+' + n + ' XP', '#c070ff', 7); while (this.xp >= XP_NEED(this.level)) { this.xp -= XP_NEED(this.level); this.level++; this.statPoints += 3; this.recalc(); this.hp = this.maxHp; this.mana = this.maxMana; Audio.play('levelup'); G.notify(`LEVEL UP! You are now level ${this.level}. +3 stat points (press T).`, '#f5d33a', 5); spawnParticles(this.x, this.y - 8, 40, ['#f5d33a', '#fff8c0'], { speed: 80, life: 1, gravity: -30 }); spawnEffect('ring', this.x, this.y, { r: 60, color: '#f5d33a', dur: 0.8 }); G.onLevel && G.onLevel(this.level); } }
+  gainXp(n) { if (G.eventIs && G.eventIs('double_xp')) n *= 2; this.xp += n; G.float(this.x, this.y - 22, '+' + n + ' XP', '#c070ff', 7); while (this.xp >= XP_NEED(this.level)) { this.xp -= XP_NEED(this.level); this.level++; this.statPoints += 3; this.recalc(); this.hp = this.maxHp; this.mana = this.maxMana; Audio.play('levelup'); G.notify(`LEVEL UP! You are now level ${this.level}. +3 stat points (press T).`, '#f5d33a', 5); spawnParticles(this.x, this.y - 8, 40, ['#f5d33a', '#fff8c0'], { speed: 80, life: 1, gravity: -30 }); spawnEffect('ring', this.x, this.y, { r: 60, color: '#f5d33a', dur: 0.8 }); G.onLevel && G.onLevel(this.level); } }
   gainWandXp(n) { const w = this.wands[this.equip.wand]; if (!w) return; w.xp += n; while (w.xp >= wandLevelXp(w.lvl) && w.lvl < 50) { w.xp -= wandLevelXp(w.lvl); w.lvl++; G.notify(`${this.wandDef().name} reached level ${w.lvl}! (+8% damage)`, '#5ad8f0'); Audio.play('craft'); } }
   // ---------- combat ----------
   heal(n, silent = false) { if (this.dead) return; const before = this.hp; this.hp = Math.min(this.maxHp, this.hp + n); if (!silent && this.hp - before >= 1) G.float(this.x, this.y - 20, '+' + Math.round(this.hp - before), '#8fe04a', 7); }
@@ -144,8 +146,9 @@ export class Player {
     const w = this.wandDef(); const aid = w.abilities[key]; if (!aid) { if (key === 'V') G.notify('This wand has no secret ability. Only the rarest do...', '#6b6b7b'); return; }
     const ab = ABILITIES[aid]; if (!ab) return;
     if (this.cds[key] > 0) { G.float(this.x, this.y - 24, 'COOLDOWN', '#6b6b7b', 6); return; }
-    if (this.mana < ab.mana) { G.float(this.x, this.y - 24, 'NO MANA', '#5a8af0', 6); Audio.play('fail'); return; }
-    this.mana -= ab.mana; this.cds[key] = ab.cd * (1 - Math.min(0.6, this.stats.cdr || 0));
+    const cost = ab.ultimate ? Math.min(ab.mana, Math.floor(this.maxMana * 0.8)) : ab.mana;
+    if (this.mana < cost) { G.float(this.x, this.y - 24, 'NO MANA', '#5a8af0', 6); Audio.play('fail'); return; }
+    this.mana -= cost; this.cds[key] = ab.cd * (1 - Math.min(0.6, this.stats.cdr || 0)); if (key === 'V') G.flags.usedV = true;
     const dir = G.aimDir(); const ctx = { p: this, wand: w, aim: { x: G.aim.x, y: G.aim.y }, dir, dmg: this.wandDmg(), lvl: this.wandLvl() };
     Audio.play(ab.ultimate ? 'ultimate' : 'ability'); if (ab.ultimate) { G.notify(ab.name + '!', '#ff3a7a', 2); G.shake(6); }
     ab.cast(ctx);
@@ -264,7 +267,7 @@ export class Player {
     const specific = foods.find(f => ITEMS[f].food === def.food); const golden = foods.includes('golden_treat'); const magic = foods.includes('magic_treat');
     const food = golden ? 'golden_treat' : specific || (magic ? 'magic_treat' : foods[0]);
     this.removeItem(food, 1); Audio.play('eat');
-    let chance = TAME_BASE[def.rarity] * (1 + this.stats.tame + this.stats.luck * 0.5) + (ITEMS[food].tameBonus || 0); if (golden) chance = 1;
+    let chance = TAME_BASE[def.rarity] * (1 + this.stats.tame + this.stats.luck * 0.5) + (ITEMS[food].tameBonus || 0) + (G.eventIs('fairy_festival') ? 0.2 : 0); if (golden) chance = 1;
     wp.heart = 1; spawnParticles(wp.x, wp.y - 8, 6, '#f07ad0', { speed: 20, life: 0.6, vy: -20 });
     if (Math.random() < chance) { Audio.play('tame'); spawnParticles(wp.x, wp.y - 8, 30, ['#f07ad0', '#fff8c0', '#f5d33a'], { speed: 60, life: 0.8 }); G.wildPets = G.wildPets.filter(w => w !== wp); if (wp.spawnRef) wp.spawnRef.respawn = 120 + Math.random() * 120; this.addPet(def.id); }
     else { G.float(wp.x, wp.y - 16, ['Not yet...', 'Almost!', 'Hmm...', '*nom*'][Math.floor(Math.random() * 4)], '#f07ad0'); wp.flee = 0.6; G.notify(`${def.name} ate the ${ITEMS[food].name} but isn't convinced. (${Math.round(chance * 100)}% chance)`, '#f0c8a0', 3); }

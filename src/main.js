@@ -31,6 +31,11 @@ const unlockAudio = () => { Audio.init(); Audio.resume(); Audio.setVolume(G.sett
 
 // ---------------- G helpers ----------------
 G.aim = { x: 0, y: 0 };
+const EVENTS = { blood_moon: { name: 'BLOOD MOON', color: '#d43a3a', msg: 'A Blood Moon rises tonight! Enemies are stronger and loot is richer.' }, meteor_shower: { name: 'METEOR SHOWER', color: '#fff8c0', msg: 'A meteor shower! Star fragments are falling from the sky.' }, fairy_festival: { name: 'FAIRY FESTIVAL', color: '#f07ad0', msg: 'Fairy Festival! Wild creatures are everywhere and easier to tame.' }, double_xp: { name: 'DOUBLE XP', color: '#c070ff', msg: 'The stars align: double XP all day!' }, market_day: { name: 'MARKET DAY', color: '#f5d33a', msg: 'Market Day! Every shop is half price.' } };
+G.EVENTS = EVENTS; G.event = null;
+G.rollEvent = () => { G.event = null; if (Math.random() < 0.35) { const keys = Object.keys(EVENTS); const k = keys[Math.floor(Math.random() * keys.length)]; G.event = { type: k, day: G.day }; G.notify(EVENTS[k].msg, EVENTS[k].color, 7); Audio.play('quest'); } };
+G.eventIs = t => !!(G.event && G.event.type === t && G.event.day === G.day);
+let meteorT = 0;
 G.aimDir = () => { const p = G.player; const dx = G.aim.x - p.x, dy = G.aim.y - (p.y - 6); const d = Math.hypot(dx, dy) || 1; return { x: dx / d, y: dy / d }; };
 G.dropItem = (id, n, x, y) => { if (!ITEMS[id] && !ARMOR[id] && !WANDS[id]) { console.warn('drop unknown', id); return; } G.drops.push(new Drop(id, n, x, y)); if (G.drops.length > 300) G.drops.shift(); };
 G.openDialog = openDialog; G.openMenu = openMenu;
@@ -44,7 +49,7 @@ G.onRide = pt => { };
 G.onHarvest = type => { Quests.onHarvest(type); Quests.refresh(); };
 G.onItemGained = id => { if (id === 'fish') G.stats.fish = (G.stats.fish || 0) + 1; Quests.refresh(); };
 G.onLevel = lvl => { Quests.refresh(); };
-G.sleep = () => { G.time = 0.27; G.day++; G.world.refillChests(G.day); G.player.heal(G.player.maxHp); G.player.mana = G.player.maxMana; G.notify(`You slept. Day ${G.day} begins.`, '#f5d33a'); G.enemies = G.enemies.filter(e => e.def.boss); spawnEffect('flash', 0, 0, { color: '#000', dur: 1.2 }); save(); };
+G.sleep = () => { G.time = 0.27; G.day++; G.world.refillChests(G.day); G.rollEvent(); G.player.heal(G.player.maxHp); G.player.mana = G.player.maxMana; G.notify(`You slept. Day ${G.day} begins.`, '#f5d33a'); G.enemies = G.enemies.filter(e => e.def.boss); spawnEffect('flash', 0, 0, { color: '#000', dur: 1.2 }); save(); };
 G.onBeacon = () => { const p = G.player; if (G.flags.beaconLit) { G.notify('The Beacon burns bright. The world is safe... for now.', '#fff8c0', 4); return; } if (p.wands.lumis) { G.flags.beaconLit = true; G.victory = true; G.notify('THE LUMIS BEACON IS LIT! Light floods the world!', '#fff8c0', 8); Audio.play('levelup'); spawnEffect('flash', 0, 0, { color: '#fff8c0', dur: 2 }); for (let i = 0; i < 10; i++) spawnEffect('delayed', 0, 0, { delay: i * 0.3, fn: () => spawnParticles(G.world.beacon.x * 16 + 8, G.world.beacon.y * 16 - 10, 40, ['#fff8c0', '#f5d33a', '#ffffff', '#5ad8f0'], { speed: 120, life: 1.5, gravity: -30 }) }); G.player.addBuff('luck', 0.5, 600); Quests.refresh(); save(); setTimeout(() => { G.victory = false; }, 15000); } else G.notify('The Beacon is dark. It needs the light of The Lumis wand...', '#a8a8b8', 4); };
 G.onVictory = () => { G.achievements.light = true; };
 G.craft = r => {
@@ -87,7 +92,7 @@ function newGame(seed) {
 function loadGame(data) {
   G.seed = data.seed; G.world = new World(G.seed); G.player = new Player(); const p = G.player; const d = data.player;
   Object.assign(p, { x: d.x, y: d.y, level: d.level, xp: d.xp, statPoints: d.statPoints, alloc: d.alloc, inventory: d.inventory, coins: d.coins, equip: d.equip, wands: d.wands, pets: d.pets, petUid: d.petUid, respawn: d.respawn, craftedWands: d.craftedWands || {}, craftedArmor: d.craftedArmor || {}, tamedIds: d.tamedIds || {}, reviveUsedDay: d.reviveUsedDay || 0 });
-  G.time = data.time; G.day = data.day; G.stats = Object.assign({ fish: 0 }, data.stats); G.flags = data.flags || {}; G.discovered = data.discovered || { village: true }; G.questState = data.questState || {}; G.achievements = data.achievements || {}; G.bossKilled = (data.world && data.world.bossKilled) || {}; G.tamedSpawns = {}; G.quickSlots = data.quickSlots || [null, null, null, null, null]; if (data.settings) Object.assign(G.settings, data.settings);
+  G.time = data.time; G.day = data.day; G.stats = Object.assign({ fish: 0 }, data.stats); G.flags = data.flags || {}; G.discovered = data.discovered || { village: true }; G.questState = data.questState || {}; G.achievements = data.achievements || {}; G.bossKilled = (data.world && data.world.bossKilled) || {}; G.tamedSpawns = {}; G.quickSlots = data.quickSlots || [null, null, null, null, null]; if (data.settings) Object.assign(G.settings, data.settings); G.event = data.event || null;
   G.enemies = []; G.pets = []; G.wildPets = []; G.projectiles = []; G.particles = []; G.drops = []; G.npcs = []; G.effects = []; G.floats = []; G.hazards = []; G.allies = [];
   G.world.applyChanges(data.world.changes, data.world.chests, data.day); Spawner.init(); buildMapCanvas();
   p.activePets = []; for (const uid of d.activePets || []) p.setPetActive(uid, true);
@@ -104,7 +109,7 @@ function update(dt) {
   if (G.dialog) { p.update(dt); for (const n of G.npcs) n.update(dt); return; }
   if (G.menu) { return; }
   // time
-  G.time += dt / G.dayLength; if (G.time >= 1) { G.time -= 1; G.day++; G.notify(`Day ${G.day}`, '#f5d33a'); G.world.refillChests(G.day); }
+  G.time += dt / G.dayLength; if (G.time >= 1) { G.time -= 1; G.day++; G.notify(`Day ${G.day}`, '#f5d33a'); G.world.refillChests(G.day); G.rollEvent(); }
   if (G.timeStop > 0) G.timeStop -= dt; if (G.timeSlow > 0) G.timeSlow -= dt;
   p.update(dt); Spawner.update(dt); updateEntities(dt); G.world.tick(dt);
   if (G.shakeObj) { G.shakeObj.t -= dt; if (G.shakeObj.t <= 0) G.shakeObj = null; }
@@ -116,6 +121,8 @@ function update(dt) {
   achT += dt; if (achT > 2) { achT = 0; for (const a of ACHIEVEMENTS) { if (!G.achievements[a.id] && a.check()) { G.achievements[a.id] = true; G.notify(`Achievement unlocked: ${a.name}!`, '#f5d33a', 5); Audio.play('quest'); } } }
   // weather
   updateWeather(dt);
+  // meteor shower event
+  if (G.eventIs('meteor_shower')) { meteorT += dt; if (meteorT > 18) { meteorT = 0; const mx = p.x + (Math.random() - 0.5) * 300, my = p.y + (Math.random() - 0.5) * 200; const tx = Math.floor(mx / 16), ty = Math.floor(my / 16); if (G.world.inb(tx, ty) && !G.world.solid(tx, ty)) { spawnEffect('target', mx, my, { r: 30, color: '#fff8c0', dur: 1.5 }); G.notify('A meteor is falling nearby!', '#fff8c0', 2); spawnEffect('delayed', mx, my, { delay: 1.5, fn: () => { spawnEffect('explosion', mx, my, { r: 40, color: '#fff8c0', dur: 0.6 }); spawnParticles(mx, my, 40, ['#fff8c0', '#f5d33a'], { speed: 100, life: 0.8 }); G.shake(10); Audio.play('explode'); for (const e of G.enemies) if (Math.hypot(e.x - mx, e.y - my) < 44) { e.hp -= 80; if (e.hp <= 0) e.dead = true; } G.dropItem(Math.random() < 0.5 ? 'star_fragment' : 'celestial_dust', 1, mx, my); G.dropItem('arcane_dust', 2, mx + 10, my); } }); } } }
   // autosave
   G.saveTimer += dt; if (G.saveTimer > 30) { G.saveTimer = 0; save(); }
   // music
@@ -165,7 +172,7 @@ function render() {
   // lighting
   const night = nightAlpha(); const biome = w.biomeAt(Math.floor(p.x / 16), Math.floor(p.y / 16)); const ambient = ['dark_forest', 'graveyard'].includes(biome) ? 0.3 : 0; const dark = Math.max(night, ambient);
   if (dark > 0.02) {
-    lctx.globalCompositeOperation = 'source-over'; lctx.fillStyle = `rgba(8,6,30,${dark})`; lctx.fillRect(0, 0, G.W, G.H);
+    lctx.globalCompositeOperation = 'source-over'; lctx.fillStyle = G.eventIs('blood_moon') && night > 0 ? `rgba(60,4,10,${dark})` : `rgba(8,6,30,${dark})`; lctx.fillRect(0, 0, G.W, G.H);
     lctx.globalCompositeOperation = 'destination-out';
     const wd = p.wandDef(); lights.push({ x: p.x, y: p.y - 6, r: 44 + wd.tier * 6, c: ELEMENT_COLORS[wd.element] });
     for (const pt of G.pets) if (pt.def.abil === 'light') lights.push({ x: pt.x, y: pt.y - 6, r: 70, c: '#fff' });
